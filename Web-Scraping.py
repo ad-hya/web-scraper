@@ -570,6 +570,40 @@ def complete_download_PDF_Files(link):
     except Exception as e:
         st.write(f"An error occurred while downloading all PDFs: {e}")
 
+# Function to scrape website metadata
+def scrape_metadata(link):
+    soup = establish_Connection(link)
+    if not soup:
+        return {}
+    metadata = {
+        "title": soup.title.string if soup.title else "",
+        "description": soup.find("meta", attrs={"name": "description"}).get("content", "") 
+                        if soup.find("meta", attrs={"name": "description"}) else "",
+        "keywords": soup.find("meta", attrs={"name": "keywords"}).get("content", "")
+                        if soup.find("meta", attrs={"name": "keywords"}) else ""
+    }
+    st.write("Website Metadata:", metadata)
+    return metadata
+
+import pandas as pd  # Make sure this import is at the top if not already
+
+def scrape_tables(link):
+    soup = establish_Connection(link)
+    if not soup:
+        st.write("No tables found.")
+        return
+    tables = soup.find_all("table")
+    if not tables:
+        st.write("No tables found.")
+        return
+    for i, table in enumerate(tables):
+        df = pd.read_html(str(table))[0]
+        st.write(f"Table {i+1}")
+        st.dataframe(df)
+        csv = df.to_csv(index=False)
+        st.download_button(f"Download Table {i+1} CSV", csv, f"table_{i+1}.csv")
+
+
 
 # Function for downloading Image
 def download_Image(link, name):
@@ -801,6 +835,12 @@ def main(utility):
         download_button_PDF()
         fname = "Zip_File_PDF.zip"
         remove_files(fname)
+        
+    elif utility == "Website Metadata":
+    scrape_metadata(link)
+
+    elif utility == "Scrape HTML Tables":
+    scrape_tables(link)
 
     elif utility == "Download Image Files From Main Website":
         main_download_Image_Files(link)
@@ -813,6 +853,7 @@ def main(utility):
         download_button_Image()
         fname = "Zip_File_Image.zip"
         remove_files(fname)
+
 
     # For Closing Button
     # Function to handle app closure and file removal
@@ -903,3 +944,4 @@ if __name__ == "__main__":
 
     # Call main function to run the app
     main(utility)
+
